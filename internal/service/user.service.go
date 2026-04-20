@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"errors"
+	"log"
 	"order-crm/internal/model"
 	"order-crm/internal/model/dto"
 	"order-crm/internal/repository"
@@ -14,6 +15,7 @@ type UserService interface {
 	Login(login string, password string) (*model.User, error)
 	GenerateAndSaveTokens(user *model.User) (string, string, error)
 	RevokeRefreshToken(refreshToken string) error
+	RefreshToken(refreshToken string) (*model.User, error)
 
 	CreateUser(req *dto.CreateUserRequest) (*model.User, error)
 
@@ -82,6 +84,31 @@ func (s *userService) RevokeRefreshToken(refreshToken string) error {
 		return err
 	}
 	return s.repo.RevokeRefreshToken(refreshToken)
+}
+
+func (s *userService) RefreshToken(refreshToken string) (*model.User, error) {
+	// проверка валидности токена
+	userID, err := utils.ValidateRefreshToken(refreshToken)
+	if err != nil {
+		return nil, errors.New("invalid or expired refresh token")
+	}
+
+	// проверка пользователя
+	user, err := s.GetUserByID(userID)
+	if err != nil {
+		return nil, err
+	}
+	if user.IsBlocked == 1 {
+		return nil, errors.New("user is blocked")
+	}
+
+	// инвалидация прошлого токена
+	err = s.RevokeRefreshToken(refreshToken)
+	if err != nil {
+		log.Println("Revoke refresh token error:", err)
+	}
+
+	return user, nil
 }
 
 // CreateUser - создание нового пользователя

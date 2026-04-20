@@ -1,10 +1,10 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"order-crm/internal/model/dto"
 	"order-crm/internal/service"
-	"order-crm/pkg/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -57,12 +57,10 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-
 	c.SetCookie("refresh_token", "", -1, "/", "", false, true)
 
 	if err = h.sc.RevokeRefreshToken(refreshToken); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		log.Println("Revoke refresh token error:", err)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -77,36 +75,26 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 
-	// проверка валидности токена
-	userID, err := utils.ValidateRefreshToken(refreshToken)
+	user, err := h.sc.RefreshToken(refreshToken)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired session"})
+		c.SetCookie("refresh_token", "", -1, "/", "", false, true)
+
+		switch err.Error() {
+		case "invalid or expired refresh token":
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Ваша сессия больше недействительна"})
+		case "user is blocked":
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Ваш аккаунт заблокирован"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 
-	// проверка пользователя
-	user, err := h.sc.GetUserByID(userID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if user.IsBlocked == 1 {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь заблокирован"})
-		return
-	}
-
-	// инвалидация прошлого токена
-	err = h.sc.RevokeRefreshToken(refreshToken)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.SetCookie("refresh_token", "", -1, "/", "", false, true)
-
-	// генерация
 	access, refresh, err := h.sc.GenerateAndSaveTokens(user)
-
-	// рефреш токен в куки хттп онли
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	c.SetCookie("refresh_token", refresh, 7*24*60*60, "/", "", false, true)
 
 	c.JSON(http.StatusOK, dto.LoginResponse{

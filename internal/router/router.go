@@ -19,12 +19,11 @@ func InitGinRouter() *gin.Engine {
 	r := gin.Default()
 	api := r.Group("/api")
 
-	user := api.Group("/user").Use(middleware.AuthMiddleware())
+	user := api.Group("/user").Use(middleware.AuthMiddleware()).Use(middleware.AdminOnly())
 	{
 		user.POST("", uHd.CreateUser)
 
-		user.GET("/id/:id", uHd.GetUserById)
-		user.GET("/login/:login", uHd.GetUserByLogin)
+		user.GET("/:id", uHd.GetUserById)
 		user.GET("/all", uHd.GetAllUsers)
 
 		user.PUT("", uHd.UpdateUser)

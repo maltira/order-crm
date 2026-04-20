@@ -53,21 +53,6 @@ func (h *UserHandler) GetUserById(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-func (h *UserHandler) GetUserByLogin(c *gin.Context) {
-	login := c.Param("login")
-	if len(login) < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный login"})
-		return
-	}
-	user, err := h.sc.GetUserByLogin(login)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, user)
-}
-
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
 	users, err := h.sc.GetAllUsers()
 	if err != nil {
