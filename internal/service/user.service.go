@@ -5,19 +5,25 @@ import (
 	"encoding/hex"
 	"errors"
 	"order-crm/internal/model"
+	"order-crm/internal/model/dto"
 	"order-crm/internal/repository"
+	"order-crm/pkg/utils"
 )
 
 type UserService interface {
-	CreateUser(req *model.CreateUserRequest) (*model.User, error)
+	Login(login string, password string) (*model.User, error)
+	GenerateAndSaveTokens(user *model.User) (string, string, error)
+	RevokeRefreshToken(refreshToken string) error
+
+	CreateUser(req *dto.CreateUserRequest) (*model.User, error)
 
 	GetUserByID(id int) (*model.User, error)
 	GetUserByLogin(login string) (*model.User, error)
 	GetAllUsers() ([]model.User, error)
 
-	UpdateUser(req *model.UpdateUserRequest) error
+	UpdateUser(req *dto.UpdateUserRequest) error
 	DeleteUser(id int) error
-	ChangePassword(req *model.ChangePasswordRequest) error
+	ChangePassword(req *dto.ChangePasswordRequest) error
 }
 
 type userService struct {
@@ -29,8 +35,57 @@ func NewUserService(repo repository.UserRepository) UserService {
 	return &userService{repo: repo}
 }
 
+func (s *userService) Login(login string, password string) (*model.User, error) {
+	user, err := s.GetUserByLogin(login)
+	if err != nil {
+		return nil, err
+	}
+
+	// Проверка пароля
+	hash := md5.Sum([]byte(password))
+	passwordHash := hex.EncodeToString(hash[:])
+	if user.Pass != passwordHash {
+		return nil, errors.New("invalid credentials")
+	}
+
+	// проверка блокировки
+	if user.IsBlocked == 1 {
+		return nil, errors.New("user is blocked")
+	}
+
+	return user, nil
+}
+
+func (s *userService) GenerateAndSaveTokens(user *model.User) (string, string, error) {
+	// генерация access и refresh
+	accessToken, err := utils.GenerateAccessToken(user.ID, user.Role.Code, user.Role.ID)
+	if err != nil {
+		return "", "", err
+	}
+	refreshToken, err := utils.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return "", "", err
+	}
+
+	// сохранить токен в бд
+	err = s.repo.SaveRefreshToken(user, refreshToken)
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
+}
+
+func (s *userService) RevokeRefreshToken(refreshToken string) error {
+	_, err := s.repo.GetTokenInfo(refreshToken)
+	if err != nil {
+		return err
+	}
+	return s.repo.RevokeRefreshToken(refreshToken)
+}
+
 // CreateUser - создание нового пользователя
-func (s *userService) CreateUser(req *model.CreateUserRequest) (*model.User, error) {
+func (s *userService) CreateUser(req *dto.CreateUserRequest) (*model.User, error) {
 	// 1. Проверяем, не существует ли пользователь с таким логином
 	existingUser, _ := s.repo.GetUserByLogin(req.Login)
 	if existingUser != nil {
@@ -108,7 +163,7 @@ func (s *userService) GetAllUsers() ([]model.User, error) {
 }
 
 // UpdateUser - обновление данных пользователя
-func (s *userService) UpdateUser(req *model.UpdateUserRequest) error {
+func (s *userService) UpdateUser(req *dto.UpdateUserRequest) error {
 	// 1. Проверяем, существует ли пользователь
 	user, err := s.repo.GetUserByID(req.ID)
 	if err != nil {
@@ -151,7 +206,7 @@ func (s *userService) DeleteUser(id int) error {
 }
 
 // ChangePassword - смена пароля пользователя
-func (s *userService) ChangePassword(req *model.ChangePasswordRequest) error {
+func (s *userService) ChangePassword(req *dto.ChangePasswordRequest) error {
 	// 1. Проверяем новый пароль
 	if len(req.NewPassword) < 8 {
 		return errors.New("пароль должен содержать минимум 8 символов")

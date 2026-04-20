@@ -3,10 +3,16 @@ package repository
 import (
 	"database/sql"
 	"errors"
+	"order-crm/config"
 	"order-crm/internal/model"
+	"time"
 )
 
 type UserRepository interface {
+	SaveRefreshToken(user *model.User, refreshToken string) error
+	RevokeRefreshToken(token string) error
+	GetTokenInfo(token string) (*model.RefreshToken, error)
+
 	CreateUser(req *model.User) error
 
 	GetUserByID(id int) (*model.User, error)
@@ -24,6 +30,57 @@ type userRepository struct {
 
 func NewUserRepository(db *sql.DB) UserRepository {
 	return &userRepository{db: db}
+}
+
+func (r *userRepository) SaveRefreshToken(user *model.User, refreshToken string) error {
+	query := `
+		INSERT INTO refresh_tokens (user_id, token, expires_at)
+		VALUES ($1, $2, $3)
+	`
+
+	err := r.db.QueryRow(query, user.ID, refreshToken, time.Now().Add(config.Env.RefreshTokenDuration)).Err()
+	if err != nil {
+		return errors.New("ошибка сохранения токена в бд: " + err.Error())
+	}
+
+	return nil
+}
+
+func (r *userRepository) RevokeRefreshToken(token string) error {
+	query := `
+		DELETE FROM refresh_tokens 
+		WHERE token = $1
+	`
+
+	result, err := r.db.Exec(query, token)
+	if err != nil {
+		return errors.New("ошибка инвалидации токена: " + err.Error())
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("токен не найден или уже отозван")
+	}
+
+	return nil
+}
+
+func (r *userRepository) GetTokenInfo(token string) (*model.RefreshToken, error) {
+	query := `
+		SELECT user_id, token, expires_at, created_at 
+		FROM refresh_tokens WHERE token = $1
+	`
+	var refresh model.RefreshToken
+	err := r.db.QueryRow(query, token).Scan(
+		&refresh.UserID,
+		&refresh.Token,
+		&refresh.ExpiresAt,
+		&refresh.CreatedAt,
+	)
+	if err != nil {
+		return nil, errors.New("Ошибка поиска токена: " + err.Error())
+	}
+	return &refresh, nil
 }
 
 func (r *userRepository) CreateUser(req *model.User) error {

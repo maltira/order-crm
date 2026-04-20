@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 type Role struct {
 	ID    int    `json:"id"`
 	Code  string `json:"code"`
@@ -53,4 +55,12 @@ type Payment struct {
 	IDOrder       int     `json:"id_order"`
 	IDPaymentType int     `json:"id_payment_type"`
 	Amount        float64 `json:"amount"`
+}
+
+type RefreshToken struct {
+	ID        int       `json:"id"`
+	UserID    int       `json:"user_id"`
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
 }
