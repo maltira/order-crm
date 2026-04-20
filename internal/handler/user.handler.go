@@ -40,10 +40,11 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 
 func (h *UserHandler) GetUserById(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Передан неверный формат ID"})
 		return
 	}
+
 	user, err := h.sc.GetUserByID(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -80,10 +81,11 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 
 func (h *UserHandler) DeleteUser(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Передан неверный формат ID"})
 		return
 	}
+
 	err = h.sc.DeleteUser(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})

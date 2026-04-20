@@ -158,9 +158,6 @@ func (s *userService) CreateUser(req *dto.CreateUserRequest) (*model.User, error
 
 // GetUserByID - получение пользователя по ID
 func (s *userService) GetUserByID(id int) (*model.User, error) {
-	if id <= 0 {
-		return nil, errors.New("id должен быть > 0")
-	}
 	user, err := s.repo.GetUserByID(id)
 	if err != nil {
 		return nil, err
@@ -226,9 +223,6 @@ func (s *userService) UpdateUser(req *dto.UpdateUserRequest) error {
 
 // DeleteUser - удаление пользователя
 func (s *userService) DeleteUser(id int) error {
-	if id <= 0 {
-		return errors.New("ID должен быть положительным числом")
-	}
 	return s.repo.DeleteUser(id)
 }
 
