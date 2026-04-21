@@ -24,6 +24,7 @@ func InitGinRouter() *gin.Engine {
 
 	r := gin.Default()
 	api := r.Group("/api")
+	api.Use(middleware.CORS())
 
 	auth := api.Group("/auth")
 	{
