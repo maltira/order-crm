@@ -102,3 +102,13 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		User:        *user,
 	})
 }
+
+func (h *AuthHandler) Me(c *gin.Context) {
+	userID := c.MustGet("user_id").(int)
+	user, err := h.sc.GetUserByID(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, user)
+}

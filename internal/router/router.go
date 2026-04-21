@@ -27,6 +27,7 @@ func InitGinRouter() *gin.Engine {
 		auth.POST("/login", authHandler.Login)
 		auth.POST("/logout", authHandler.Logout)
 		auth.POST("/refresh", authHandler.Refresh)
+		auth.GET("/me", middleware.AuthMiddleware(), authHandler.Me)
 	}
 
 	users := api.Group("/users").Use(middleware.AuthMiddleware()).Use(middleware.AdminOnly())
