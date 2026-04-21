@@ -13,11 +13,14 @@ import (
 func InitGinRouter() *gin.Engine {
 	userRepo := repository.NewUserRepository(database.GetDB())
 	clientRepo := repository.NewClientRepository(database.GetDB())
+	orderRepo := repository.NewOrderRepository(database.GetDB())
 	userService := service.NewUserService(userRepo)
 	clientService := service.NewClientService(clientRepo)
+	orderService := service.NewOrderService(orderRepo)
 	userHandler := handler.NewUserHandler(userService)
 	authHandler := handler.NewAuthHandler(userService)
 	clientHandler := handler.NewClientHandler(clientService)
+	orderHandler := handler.NewOrderHandler(orderService)
 
 	r := gin.Default()
 	api := r.Group("/api")
@@ -50,6 +53,20 @@ func InitGinRouter() *gin.Engine {
 		clients.PUT("/:id", middleware.ManagerOrHigher(), clientHandler.UpdateClient)
 		clients.GET("/:id", clientHandler.GetClientById)
 		clients.DELETE("/:id", middleware.ManagerOrHigher(), clientHandler.DeleteClient)
+	}
+
+	orders := api.Group("/orders").Use(middleware.AuthMiddleware())
+	{
+		orders.GET("", orderHandler.GetAllOrders)
+		orders.GET("/:id", orderHandler.GetOrderById)
+		orders.POST("", orderHandler.CreateOrder)
+		orders.DELETE("/:id", orderHandler.DeleteOrder)
+
+		orders.POST("/:id/items", orderHandler.AddOrderItem)
+		orders.DELETE("/:id/items/:item_id", middleware.ManagerOrHigher(), orderHandler.DeleteOrderItem)
+
+		orders.PUT("/:id/status", middleware.ManagerOrHigher(), orderHandler.UpdateOrderStatus)
+		orders.POST("/:id/payments", middleware.ManagerOrHigher(), orderHandler.AddPayment)
 	}
 
 	return r
