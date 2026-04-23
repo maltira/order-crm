@@ -23,7 +23,7 @@ func (h *OrderHandler) GetAllOrders(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"orders": orders})
+	c.JSON(http.StatusOK, orders)
 }
 
 func (h *OrderHandler) GetOrderById(c *gin.Context) {
@@ -54,10 +54,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Заказ успешно создан",
-		"order":   order,
-	})
+	c.JSON(http.StatusOK, order)
 }
 
 func (h *OrderHandler) UpdateOrderStatus(c *gin.Context) {
@@ -124,18 +121,23 @@ func (h *OrderHandler) AddOrderItem(c *gin.Context) {
 }
 
 func (h *OrderHandler) DeleteOrderItem(c *gin.Context) {
-	var req dto.DeleteOrderItemRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	orderId, err := strconv.Atoi(c.Param("id"))
+	if err != nil || orderId <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Передан неверный формат ID"})
+		return
+	}
+	orderItemId, err := strconv.Atoi(c.Param("item_id"))
+	if err != nil || orderItemId <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Передан неверный формат ID"})
 		return
 	}
 
-	if err := h.sc.DeleteOrderItem(req.OrderId, req.OrderItemId); err != nil {
+	if err = h.sc.DeleteOrderItem(orderId, orderItemId); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Заказ успешно удалён"})
+	c.JSON(http.StatusOK, gin.H{"message": "Позиция успешно удалена"})
 }
 
 func (h *OrderHandler) DeleteOrder(c *gin.Context) {

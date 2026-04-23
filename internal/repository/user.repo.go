@@ -163,7 +163,7 @@ func (r *userRepository) GetUserByLogin(login string) (*model.User, error) {
 		&user.Role.Label,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, errors.New("пользователь не найден")
+		return nil, errors.New("user not found")
 	}
 	if err != nil {
 		return nil, errors.New("ошибка получения пользователя: " + err.Error())

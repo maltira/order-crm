@@ -30,7 +30,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		case "user is blocked":
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь заблокирован администратором"})
 		case "invalid credentials":
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный логин или пароль"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Неверный логин или пароль"})
+		case "user not found":
+			c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
@@ -52,15 +54,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	refreshToken, err := c.Cookie("refresh_token")
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
+	refreshToken, _ := c.Cookie("refresh_token")
 	c.SetCookie("refresh_token", "", -1, "/", "", false, true)
 
-	if err = h.sc.RevokeRefreshToken(refreshToken); err != nil {
-		log.Println("Revoke refresh token error:", err)
+	if refreshToken != "" {
+		if err := h.sc.RevokeRefreshToken(refreshToken); err != nil {
+			log.Println("Revoke refresh token error:", err)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

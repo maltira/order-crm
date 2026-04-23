@@ -23,8 +23,8 @@ func InitGinRouter() *gin.Engine {
 	orderHandler := handler.NewOrderHandler(orderService)
 
 	r := gin.Default()
+	r.Use(middleware.CORS())
 	api := r.Group("/api")
-	api.Use(middleware.CORS())
 
 	auth := api.Group("/auth")
 	{

@@ -191,7 +191,7 @@ func (s *userService) UpdateUser(req *dto.UpdateUserRequest) error {
 	// 1. Проверяем, существует ли пользователь
 	user, err := s.repo.GetUserByID(req.ID)
 	if err != nil {
-		return errors.New("пользователь не найден")
+		return errors.New("user not found")
 	}
 
 	// 2. Валидация

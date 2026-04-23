@@ -23,7 +23,7 @@ func (h *ClientHandler) GetAllClients(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"clients": clients})
+	c.JSON(http.StatusOK, clients)
 }
 
 func (h *ClientHandler) GetClientById(c *gin.Context) {
@@ -55,10 +55,7 @@ func (h *ClientHandler) CreateClient(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Клиент успешно создан",
-		"client":  client,
-	})
+	c.JSON(http.StatusCreated, client)
 }
 
 func (h *ClientHandler) UpdateClient(c *gin.Context) {

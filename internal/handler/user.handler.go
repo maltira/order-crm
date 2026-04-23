@@ -32,10 +32,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Пользователь успешно создан",
-		"user":    user,
-	})
+	c.JSON(http.StatusCreated, user)
 }
 
 func (h *UserHandler) GetUserById(c *gin.Context) {
@@ -61,7 +58,7 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"users": users})
+	c.JSON(http.StatusOK, users)
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
