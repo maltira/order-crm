@@ -35,7 +35,7 @@ func (h *OrderHandler) GetOrderById(c *gin.Context) {
 
 	order, err := h.sc.GetOrderById(id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, order)

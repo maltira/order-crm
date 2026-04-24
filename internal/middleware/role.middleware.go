@@ -32,7 +32,3 @@ func AdminOnly() gin.HandlerFunc {
 func ManagerOrHigher() gin.HandlerFunc {
 	return RoleMiddleware("admin", "manager")
 }
-
-func EmployeeOrHigher() gin.HandlerFunc {
-	return RoleMiddleware("admin", "manager", "employee")
-}

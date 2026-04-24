@@ -46,7 +46,7 @@ func (r *orderRepository) GetAllOrders() ([]model.Order, error) {
 
 func (r *orderRepository) GetOrderById(id int) (*dto.FullOrder, error) {
 	// * Получаем сам заказ
-	orderQuery := `SELECT * FROM orders WHERE id = ?`
+	orderQuery := `SELECT * FROM orders WHERE id = $1`
 
 	var o dto.FullOrder
 	err := r.db.QueryRow(orderQuery, id).Scan(&o.ID, &o.Label, &o.IDStatus, &o.IDClient, &o.Amount)
@@ -55,7 +55,7 @@ func (r *orderRepository) GetOrderById(id int) (*dto.FullOrder, error) {
 	}
 
 	// * Получаем позиции заказа
-	itemsQuery := `SELECT * FROM order_items WHERE id_order = ? ORDER BY id`
+	itemsQuery := `SELECT * FROM order_items WHERE id_order = $1 ORDER BY id`
 
 	rows, err := r.db.Query(itemsQuery, id)
 	if err != nil {
@@ -73,7 +73,7 @@ func (r *orderRepository) GetOrderById(id int) (*dto.FullOrder, error) {
 	}
 
 	// * Получаем информацию о платеже
-	paymentsQuery := `SELECT * FROM payments WHERE id_order = ? ORDER BY id`
+	paymentsQuery := `SELECT * FROM payments WHERE id_order = $1 ORDER BY id`
 
 	rows, err = r.db.Query(paymentsQuery, id)
 	if err != nil {
@@ -133,16 +133,60 @@ func (r *orderRepository) AddPaymentToOrder(payment *model.Payment) error {
 }
 
 func (r *orderRepository) AddOrderItem(item *model.OrderItem) error {
-	query := `INSERT INTO order_items (label, id_order, amount) VALUES ($1, $2, $3)`
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 
-	_, err := r.db.Exec(query, item.Label, item.IDOrder, item.Amount)
-	return err
+	queryItem := `INSERT INTO order_items (label, id_order, amount) VALUES ($1, $2, $3)`
+	queryOrder := `UPDATE orders SET amount = $1 WHERE id = $2`
+
+	_, err = tx.Exec(queryItem, item.Label, item.IDOrder, item.Amount)
+	if err != nil {
+		return err
+	}
+
+	var amount float64
+	err = tx.QueryRow(`SELECT SUM(amount) FROM order_items WHERE id_order = $1`, item.IDOrder).Scan(&amount)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(queryOrder, amount, item.IDOrder)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (r *orderRepository) DeleteOrderItem(orderId, orderItemId int) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var amount float64
+
 	query := `DELETE FROM order_items WHERE id_order = $1 AND id = $2`
-	_, err := r.db.Exec(query, orderId, orderItemId)
-	return err
+	queryOrder := `UPDATE orders SET amount = $1 WHERE id = $2`
+
+	_, err = tx.Exec(query, orderId, orderItemId)
+	if err != nil {
+		return err
+	}
+
+	err = tx.QueryRow(`SELECT coalesce(SUM(amount), 0) FROM order_items WHERE id_order = $1`, orderId).Scan(&amount)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(queryOrder, amount, orderItemId)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (r *orderRepository) DeleteOrder(id int) error {

@@ -39,3 +39,8 @@
 - Проведение платежей
 - Изменение статусов заказов
 - Разграничение доступа по ролям
+
+### Тесты
+```bash 
+docker compose -f docker-compose.test.yml up --build tests
+```

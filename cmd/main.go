@@ -9,9 +9,9 @@ import (
 
 func main() {
 	config.InitEnv()
-	database.InitDB()
+	db := database.InitDB()
 
-	r := router.InitGinRouter()
+	r := router.InitGinRouter(db)
 
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal("Failed to start server:", err)

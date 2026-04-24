@@ -2,10 +2,14 @@ package dto
 
 import "order-crm/internal/model"
 
+type OrderItemCreate struct {
+	Label  string  `json:"label"`
+	Amount float64 `json:"amount"`
+}
 type CreateOrderRequest struct {
 	Label    string            `json:"label"`
 	IDClient int               `json:"id_client"`
-	Items    []model.OrderItem `json:"items"`
+	Items    []OrderItemCreate `json:"items"`
 }
 type UpdateOrderStatusRequest struct {
 	IDStatus int `json:"id_status"`

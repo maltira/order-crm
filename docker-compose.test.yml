@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres-test:
+    image: postgres:alpine3.22
+    container_name: lab-crm-db-test
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: crm_db_test
+    ports:
+      - "5435:5432"          # другой порт, чтобы не конфликтовать с основной БД
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test     # создадим ниже
+    container_name: order-crm-tests
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres-test:5432/crm_db_test?sslmode=disable
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: go test -v -count=1 ./...   # -count=1 отключает кэш
+    env_file:
+      - .env
+
+volumes:
+  postgres_test_data:

@@ -1,19 +1,19 @@
 package router
 
 import (
+	"database/sql"
 	"order-crm/internal/handler"
 	"order-crm/internal/middleware"
 	"order-crm/internal/repository"
 	"order-crm/internal/service"
-	"order-crm/pkg/database"
 
 	"github.com/gin-gonic/gin"
 )
 
-func InitGinRouter() *gin.Engine {
-	userRepo := repository.NewUserRepository(database.GetDB())
-	clientRepo := repository.NewClientRepository(database.GetDB())
-	orderRepo := repository.NewOrderRepository(database.GetDB())
+func InitGinRouter(db *sql.DB) *gin.Engine {
+	userRepo := repository.NewUserRepository(db)
+	clientRepo := repository.NewClientRepository(db)
+	orderRepo := repository.NewOrderRepository(db)
 	userService := service.NewUserService(userRepo)
 	clientService := service.NewClientService(clientRepo)
 	orderService := service.NewOrderService(orderRepo)
@@ -64,9 +64,9 @@ func InitGinRouter() *gin.Engine {
 		orders.DELETE("/:id", orderHandler.DeleteOrder)
 
 		orders.POST("/:id/items", orderHandler.AddOrderItem)
-		orders.DELETE("/:id/items/:item_id", middleware.ManagerOrHigher(), orderHandler.DeleteOrderItem)
+		orders.DELETE("/:id/items/:item_id", orderHandler.DeleteOrderItem)
 
-		orders.PUT("/:id/status", middleware.ManagerOrHigher(), orderHandler.UpdateOrderStatus)
+		orders.PUT("/:id/status", orderHandler.UpdateOrderStatus)
 		orders.POST("/:id/payments", middleware.ManagerOrHigher(), orderHandler.AddPayment)
 	}
 

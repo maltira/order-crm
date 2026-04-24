@@ -37,11 +37,11 @@ func (sc *orderService) CreateOrder(req *dto.CreateOrderRequest) (*model.Order, 
 	order := &model.Order{
 		Label:    req.Label,
 		IDClient: req.IDClient,
-		IDStatus: 10, // Проект
+		IDStatus: 1, // Проект
 	}
 
 	var items []model.OrderItem
-	var totalAmount float64
+	var totalAmount float64 = 0
 
 	for _, item := range req.Items {
 		items = append(items, model.OrderItem{
