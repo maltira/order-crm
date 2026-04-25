@@ -44,10 +44,10 @@ type Order struct {
 }
 
 type OrderItem struct {
-	ID      int     `json:"id"`
-	Label   string  `json:"label"`
-	IDOrder int     `json:"id_order"`
-	Amount  float64 `json:"amount"`
+	ID            int     `json:"id"`
+	IDOrder       int     `json:"id_order"`
+	ProductID     int     `json:"product_id"`
+	PriceSnapshot float64 `json:"price_snapshot"`
 }
 
 type Payment struct {

@@ -29,7 +29,7 @@ func InitGinRouter(db *sql.DB) *gin.Engine {
 	auth := api.Group("/auth")
 	{
 		auth.POST("/login", authHandler.Login)
-		auth.POST("/logout", authHandler.Logout)
+		auth.POST("/logout", middleware.AuthMiddleware(), authHandler.Logout)
 		auth.POST("/refresh", authHandler.Refresh)
 		auth.GET("/me", middleware.AuthMiddleware(), authHandler.Me)
 	}
@@ -68,6 +68,11 @@ func InitGinRouter(db *sql.DB) *gin.Engine {
 
 		orders.PUT("/:id/status", orderHandler.UpdateOrderStatus)
 		orders.POST("/:id/payments", middleware.ManagerOrHigher(), orderHandler.AddPayment)
+
+		// products
+		orders.GET("/products", handler.GetAllProductsHandler)
+		orders.GET("/products/:id", handler.GetProductById)
+		orders.GET("/products/:id/purchases", handler.GetProductPurchases)
 	}
 
 	return r

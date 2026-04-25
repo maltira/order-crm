@@ -18,6 +18,42 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  redis:
+    image: redis:7
+    container_name: lab-crm-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+  mongo:
+    image: mongo:7
+    container_name: lab-crm-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    volumes:
+      - mongo_data:/data/db
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: lab-crm-clickhouse
+    restart: unless-stopped
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_DB: lab_crm_db
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: "12345678"
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    volumes:
+      - ch_data:/var/lib/clickhouse
   order-crm-service:
     container_name: order-crm-service
     build:
@@ -29,7 +65,13 @@ services:
       - "8080:8080"
     depends_on:
       - postgres
+      - mongo
+      - redis
+      - clickhouse
     env_file:
       - .env
 volumes:
   postgres_data:
+  redis_data:
+  mongo_data:
+  ch_data:

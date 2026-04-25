@@ -4,6 +4,7 @@ import (
 	"order-crm/internal/model"
 	"order-crm/internal/model/dto"
 	"order-crm/internal/repository"
+	mng "order-crm/internal/repository/mongo"
 )
 
 type OrderService interface {
@@ -44,11 +45,15 @@ func (sc *orderService) CreateOrder(req *dto.CreateOrderRequest) (*model.Order, 
 	var totalAmount float64 = 0
 
 	for _, item := range req.Items {
+		product, err := mng.GetProductById(item.ProductID)
+		if err != nil {
+			return nil, err
+		}
 		items = append(items, model.OrderItem{
-			Label:  item.Label,
-			Amount: item.Amount,
+			ProductID:     item.ProductID,
+			PriceSnapshot: product.Price,
 		})
-		totalAmount += item.Amount
+		totalAmount += product.Price
 	}
 	order.Amount = totalAmount
 
@@ -70,10 +75,14 @@ func (sc *orderService) AddPaymentToOrder(id int, req *dto.AddPaymentRequest) er
 }
 
 func (sc *orderService) AddOrderItem(id int, req *dto.OrderItemRequest) error {
+	product, err := mng.GetProductById(req.ProductID)
+	if err != nil {
+		return err
+	}
 	item := &model.OrderItem{
-		IDOrder: id,
-		Label:   req.Label,
-		Amount:  req.Amount,
+		IDOrder:       id,
+		ProductID:     req.ProductID,
+		PriceSnapshot: product.Price,
 	}
 	return sc.repo.AddOrderItem(item)
 }

@@ -10,6 +10,9 @@ import (
 func main() {
 	config.InitEnv()
 	db := database.InitDB()
+	database.InitMongo()
+	database.InitRedis()
+	database.InitClickHouse()
 
 	r := router.InitGinRouter(db)
 

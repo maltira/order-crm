@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"order-crm/internal/model/dto"
 	"order-crm/internal/service"
+	"order-crm/pkg/database"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,7 @@ func NewUserHandler(sc service.UserService) *UserHandler {
 }
 
 func (h *UserHandler) CreateUser(c *gin.Context) {
+	userID := c.MustGet("user_id").(int)
 	var req *dto.CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -31,6 +33,8 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	go database.LogUserEvent(userID, "create_user")
 
 	c.JSON(http.StatusCreated, user)
 }
@@ -62,6 +66,7 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
+	userID := c.MustGet("user_id").(int)
 	var req dto.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -73,10 +78,13 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
+	go database.LogUserEvent(userID, "update_user")
+
 	c.JSON(http.StatusOK, gin.H{"message": "Пользователь обновлён"})
 }
 
 func (h *UserHandler) DeleteUser(c *gin.Context) {
+	userID := c.MustGet("user_id").(int)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Передан неверный формат ID"})
@@ -89,10 +97,13 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
+	go database.LogUserEvent(userID, "delete_user")
+
 	c.JSON(http.StatusOK, gin.H{"message": "Пользователь удалён"})
 }
 
 func (h *UserHandler) ChangePassword(c *gin.Context) {
+	userID := c.MustGet("user_id").(int)
 	var req dto.ChangePasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -103,6 +114,8 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	go database.LogUserEvent(userID, "change_user_password")
 
 	c.JSON(http.StatusOK, gin.H{"message": "Пароль успешно изменён"})
 }

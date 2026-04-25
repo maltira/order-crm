@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"order-crm/internal/model/dto"
 	"order-crm/internal/service"
+	"order-crm/pkg/database"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -42,6 +44,7 @@ func (h *OrderHandler) GetOrderById(c *gin.Context) {
 }
 
 func (h *OrderHandler) CreateOrder(c *gin.Context) {
+	userID := c.MustGet("user_id").(int)
 	var req dto.CreateOrderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -54,10 +57,13 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		return
 	}
 
+	go database.LogUserEvent(userID, "create_order")
+
 	c.JSON(http.StatusOK, order)
 }
 
 func (h *OrderHandler) UpdateOrderStatus(c *gin.Context) {
+	userID := c.MustGet("user_id").(int)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Передан неверный формат ID"})
@@ -75,10 +81,21 @@ func (h *OrderHandler) UpdateOrderStatus(c *gin.Context) {
 		return
 	}
 
+	go database.LogUserEvent(userID, "update_order_status")
+	go database.LogOrderStatus(id, req.IDStatus)
+
+	order, err := h.sc.GetOrderById(id)
+	if err != nil {
+		log.Println("Ошибка получения заказа для redis", err.Error())
+	} else {
+		go database.IncrPurchases(order.Items)
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Статус заказа успешно обновлён"})
 }
 
 func (h *OrderHandler) AddPayment(c *gin.Context) {
+	userID := c.MustGet("user_id").(int)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Передан неверный формат ID"})
@@ -96,10 +113,13 @@ func (h *OrderHandler) AddPayment(c *gin.Context) {
 		return
 	}
 
+	go database.LogUserEvent(userID, "add_payment")
+
 	c.JSON(http.StatusOK, gin.H{"message": "Платёж успешно добавлен"})
 }
 
 func (h *OrderHandler) AddOrderItem(c *gin.Context) {
+	userID := c.MustGet("user_id").(int)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Передан неверный формат ID"})
@@ -117,10 +137,13 @@ func (h *OrderHandler) AddOrderItem(c *gin.Context) {
 		return
 	}
 
+	go database.LogUserEvent(userID, "add_order_item")
+
 	c.JSON(http.StatusOK, gin.H{"message": "Позиция успешно добавлена в заказ"})
 }
 
 func (h *OrderHandler) DeleteOrderItem(c *gin.Context) {
+	userID := c.MustGet("user_id").(int)
 	orderId, err := strconv.Atoi(c.Param("id"))
 	if err != nil || orderId <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Передан неверный формат ID"})
@@ -137,10 +160,13 @@ func (h *OrderHandler) DeleteOrderItem(c *gin.Context) {
 		return
 	}
 
+	go database.LogUserEvent(userID, "delete_order_item")
+
 	c.JSON(http.StatusOK, gin.H{"message": "Позиция успешно удалена"})
 }
 
 func (h *OrderHandler) DeleteOrder(c *gin.Context) {
+	userID := c.MustGet("user_id").(int)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Передан неверный формат ID"})
@@ -151,6 +177,8 @@ func (h *OrderHandler) DeleteOrder(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	go database.LogUserEvent(userID, "delete_order")
 
 	c.JSON(http.StatusOK, gin.H{"message": "Заказ успешно удалён"})
 }

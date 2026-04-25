@@ -2,14 +2,10 @@ package dto
 
 import "order-crm/internal/model"
 
-type OrderItemCreate struct {
-	Label  string  `json:"label"`
-	Amount float64 `json:"amount"`
-}
 type CreateOrderRequest struct {
-	Label    string            `json:"label"`
-	IDClient int               `json:"id_client"`
-	Items    []OrderItemCreate `json:"items"`
+	Label    string             `json:"label"`
+	IDClient int                `json:"id_client"`
+	Items    []OrderItemRequest `json:"items"`
 }
 type UpdateOrderStatusRequest struct {
 	IDStatus int `json:"id_status"`
@@ -21,8 +17,7 @@ type AddPaymentRequest struct {
 }
 
 type OrderItemRequest struct {
-	Label  string  `json:"label"`
-	Amount float64 `json:"amount"`
+	ProductID int `json:"product_id"`
 }
 
 type DeleteOrderItemRequest struct {

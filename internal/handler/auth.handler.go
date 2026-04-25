@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"order-crm/internal/model/dto"
 	"order-crm/internal/service"
+	"order-crm/pkg/database"
 
 	"github.com/gin-gonic/gin"
 )
@@ -47,6 +48,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// рефреш токен в куки хттп онли
 	c.SetCookie("refresh_token", refresh, 7*24*60*60, "/", "", false, true)
 
+	go database.LogUserEvent(user.ID, "login")
+
 	c.JSON(http.StatusOK, dto.LoginResponse{
 		AccessToken: access, // access в state management
 		User:        *user,
@@ -54,6 +57,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
+	userID := c.MustGet("user_id").(int)
 	refreshToken, _ := c.Cookie("refresh_token")
 	c.SetCookie("refresh_token", "", -1, "/", "", false, true)
 
@@ -62,6 +66,8 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 			log.Println("Revoke refresh token error:", err)
 		}
 	}
+
+	go database.LogUserEvent(userID, "logout")
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Вы вышли из аккаунта",
@@ -96,6 +102,8 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 	c.SetCookie("refresh_token", refresh, 7*24*60*60, "/", "", false, true)
+
+	go database.LogUserEvent(user.ID, "refresh")
 
 	c.JSON(http.StatusOK, dto.LoginResponse{
 		AccessToken: access, // access в state management

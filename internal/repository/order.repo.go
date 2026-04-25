@@ -65,7 +65,7 @@ func (r *orderRepository) GetOrderById(id int) (*dto.FullOrder, error) {
 
 	for rows.Next() {
 		var item model.OrderItem
-		err = rows.Scan(&item.ID, &item.Label, &item.IDOrder, &item.Amount)
+		err = rows.Scan(&item.ID, &item.IDOrder, &item.ProductID, &item.PriceSnapshot)
 		if err != nil {
 			return nil, err
 		}
@@ -109,8 +109,8 @@ func (r *orderRepository) CreateOrderWithItems(order *model.Order, items []model
 
 	// Добавляем позиции
 	for _, item := range items {
-		_, err = tx.Exec(`INSERT INTO order_items (label, id_order, amount) VALUES ($1, $2, $3)`,
-			item.Label, order.ID, item.Amount)
+		_, err = tx.Exec(`INSERT INTO order_items (id_order, product_id, price_snapshot) VALUES ($1, $2, $3)`,
+			order.ID, item.ProductID, item.PriceSnapshot)
 		if err != nil {
 			return err
 		}
@@ -139,16 +139,16 @@ func (r *orderRepository) AddOrderItem(item *model.OrderItem) error {
 	}
 	defer tx.Rollback()
 
-	queryItem := `INSERT INTO order_items (label, id_order, amount) VALUES ($1, $2, $3)`
+	queryItem := `INSERT INTO order_items (id_order, product_id, price_snapshot) VALUES ($1, $2, $3)`
 	queryOrder := `UPDATE orders SET amount = $1 WHERE id = $2`
 
-	_, err = tx.Exec(queryItem, item.Label, item.IDOrder, item.Amount)
+	_, err = tx.Exec(queryItem, item.IDOrder, item.ProductID, item.PriceSnapshot)
 	if err != nil {
 		return err
 	}
 
 	var amount float64
-	err = tx.QueryRow(`SELECT SUM(amount) FROM order_items WHERE id_order = $1`, item.IDOrder).Scan(&amount)
+	err = tx.QueryRow(`SELECT coalesce(SUM(price_snapshot), 0) FROM order_items WHERE id_order = $1`, item.IDOrder).Scan(&amount)
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func (r *orderRepository) DeleteOrderItem(orderId, orderItemId int) error {
 		return err
 	}
 
-	err = tx.QueryRow(`SELECT coalesce(SUM(amount), 0) FROM order_items WHERE id_order = $1`, orderId).Scan(&amount)
+	err = tx.QueryRow(`SELECT coalesce(SUM(price_snapshot), 0) FROM order_items WHERE id_order = $1`, orderId).Scan(&amount)
 	if err != nil {
 		return err
 	}

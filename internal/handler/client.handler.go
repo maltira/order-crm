@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"order-crm/internal/model/dto"
 	"order-crm/internal/service"
+	"order-crm/pkg/database"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -43,6 +44,7 @@ func (h *ClientHandler) GetClientById(c *gin.Context) {
 }
 
 func (h *ClientHandler) CreateClient(c *gin.Context) {
+	userID := c.MustGet("user_id").(int)
 	var req dto.ClientRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -55,10 +57,13 @@ func (h *ClientHandler) CreateClient(c *gin.Context) {
 		return
 	}
 
+	go database.LogUserEvent(userID, "create_client")
+
 	c.JSON(http.StatusCreated, client)
 }
 
 func (h *ClientHandler) UpdateClient(c *gin.Context) {
+	userID := c.MustGet("user_id").(int)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Передан неверный формат ID"})
@@ -76,10 +81,13 @@ func (h *ClientHandler) UpdateClient(c *gin.Context) {
 		return
 	}
 
+	go database.LogUserEvent(userID, "update_client")
+
 	c.JSON(http.StatusOK, gin.H{"message": "Клиент успешно обновлён"})
 }
 
 func (h *ClientHandler) DeleteClient(c *gin.Context) {
+	userID := c.MustGet("user_id").(int)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Передан неверный формат ID"})
@@ -90,6 +98,8 @@ func (h *ClientHandler) DeleteClient(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+
+	go database.LogUserEvent(userID, "delete_client")
 
 	c.JSON(http.StatusOK, gin.H{"message": "Клиент удалён"})
 }
